@@ -1,19 +1,43 @@
 module Main where
   
 import Graphics.Gloss
+import Graphics.Gloss.Interface.IO.Game
+import Control.Concurrent
+import Control.Concurrent.STM
 
 window :: Display
-window = InWindow "hsTetris" (1280, 720) (10, 10)
+window = InWindow "hsTetris" (600, 800) (10, 10)
 
-backgroundColor :: Color
+backgroundColor, ballColor :: Color
 backgroundColor = black
+ballColor = white  
 
-initialGame = 42
+ball :: Float -> Picture
+ball world = pictures [(uncurry translate (0,world) $ color ballColor $ circleSolid 10)]
 
-gameAsPicture _ = Blank
+gameAsPicture :: TVar Float -> IO Picture
+gameAsPicture world = do
+  return pics
+  where
+    pics = pictures[ball 0]
 
-transformGame _ game = game
+transformGame :: Event -> TVar Float -> IO (TVar Float )
+transformGame _ game = do 
+  temp <- atomically(readTVar game)
+  return game
+
+newThread :: TVar Float -> IO()
+newThread n = do
+  temp <- atomically(readTVar n)
+  atomically(writeTVar n (temp + 1))
+  threadDelay 10
+  newThread n
+
+update seconds int = return int
 
 main :: IO ()
-main = play window backgroundColor 60 initialGame gameAsPicture transformGame (const id)
+main = do
+  temp <- atomically(newTVar 0)
+  forkIO $ newThread temp
+  playIO window backgroundColor 60 temp gameAsPicture transformGame update
 

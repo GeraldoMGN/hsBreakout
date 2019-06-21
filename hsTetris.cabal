@@ -52,6 +52,8 @@ executable hsTetris
   -- .hs or .lhs file containing the Main module.
   main-is:             Main.hs
 
+  ghc-options: -threaded -rtsopts
+
   -- Modules included in this executable, other than Main.
   -- other-modules:
 
@@ -59,7 +61,7 @@ executable hsTetris
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.12 && <4.13, gloss >=1.13 && <1.14
+  build-depends:       base >=4.12 && <4.13, gloss >=1.13 && <1.14, stm
 
   -- Directories containing source files.
   hs-source-dirs:      src
