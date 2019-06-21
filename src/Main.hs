@@ -8,7 +8,7 @@ import Control.Concurrent.STM
 import Types
 
 window :: Display
-window = InWindow "hsTetris" (600, 800) (10, 10)
+window = InWindow "hsTetris" (screenWidth, screenHeight) (10, 10)
 
 backgroundColor, ballColor :: Color
 backgroundColor = black
@@ -16,13 +16,14 @@ ballColor = white
 
 newGame :: Game
 newGame = Game {
-  ball = ((Vector2 0 0), (Vector2 1 1))
+  ball = (Vector2 0 (-350), Vector2 5 5),
+  lost = False
 }
 
 drawBall :: Game -> Picture
 drawBall world = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
   where
-    ((Vector2 posX posY ),_) = ball world
+    (Vector2 posX posY ,_) = ball world
 
 gameAsPicture :: TVar Game -> IO Picture
 gameAsPicture world = do
@@ -38,12 +39,37 @@ transformGame _ game = do
 
 gameLogic :: TVar Game -> IO()
 gameLogic gameStateTVar = do
-  (Game ((Vector2 posX posY), (Vector2 velX velY))) <- atomically(readTVar gameStateTVar)
-  atomically(
-    writeTVar gameStateTVar (Game ((Vector2 (posX + velX) (posY + velY)), (Vector2 velX velY)))  )
+  gameState <- atomically(readTVar gameStateTVar)
+  let newGameState = moveBall gameState
+  atomically $ writeTVar gameStateTVar $ newGameState
   threadDelay (16666)
   gameLogic gameStateTVar
 
+-- Moves the ball and check if passed the bottom of the screen
+moveBall :: Game -> Game
+moveBall gameState =
+  Game {
+  ball = collidesWalls oldBall,
+  lost = didLose oldBall
+  }
+  where
+    Game oldBall lost = gameState
+
+collidesWalls :: Ball -> Ball
+collidesWalls ball
+  | (ballPosX + ballVelX) >=  290 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
+  | (ballPosX + ballVelX) <= -290 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
+  | (ballPosY + ballVelY) >=  390 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY)) 
+  | otherwise                     = (Vector2 (ballPosX + ballVelX) (ballPosY + ballVelY), Vector2 ballVelX ballVelY)
+  where
+    (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
+
+didLose :: Ball -> Bool
+didLose ball =
+  ballPosY < (-390)
+  where
+    (Vector2 ballPosX ballPosY, _) = ball
+    
 update seconds int = return int
 
 main :: IO ()
