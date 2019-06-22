@@ -61,7 +61,7 @@ executable hsTetris
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.12 && <4.13, gloss >=1.13 && <1.14, stm
+  build-depends:       base >=4.12 && <4.13, gloss >=1.13 && <1.14, stm, containers
 
   -- Directories containing source files.
   hs-source-dirs:      src

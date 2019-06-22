@@ -2,10 +2,15 @@ module Main where
   
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
+import qualified Data.Set as Set
 import Control.Concurrent
 import Control.Concurrent.STM
 
 import Types
+
+{- TODOS
+- Use the arrow keys
+-}
 
 toInt :: Float -> Int
 toInt = round
@@ -22,7 +27,8 @@ newGame :: Game
 newGame = Game {
   ball = (Vector2 0 (-350), Vector2 5 5),
   lost = False,
-  paddle = (0,60)
+  paddle = (0,100),
+  keys = Set.empty
 }
 
 drawBall :: Ball -> Picture
@@ -38,34 +44,58 @@ drawPaddle paddle = pictures [(uncurry translate (posX, (-370)) $ color paddleCo
 gameAsPicture :: TVar Game -> IO Picture
 gameAsPicture world = do
   gameState <- atomically(readTVar world)
-  let Game ball lost paddle = gameState
+  let Game ball _ paddle _ = gameState
   let pics = pictures[(drawBall ball), (drawPaddle paddle)] in
     return pics
 
+processInput :: Paddle -> Set.Set Char -> Paddle
+processInput paddle keys
+  | Set.member 'a' keys = movePaddle paddle (-paddleSpeed)
+  | Set.member 'd' keys = movePaddle paddle paddleSpeed
+  | otherwise = paddle
 
-transformGame :: Event -> TVar Game -> IO (TVar Game )
-transformGame _ game = do 
-  temp <- atomically(readTVar game)
-  return game
+-- TODO: Check bounds between walls and paddle
+movePaddle :: Paddle -> Float -> Paddle
+movePaddle paddle d = ((posX + d), width)
+  where
+    (posX, width) = paddle
+
+updatePressedKeys :: Game -> KeyState -> Char -> Game
+updatePressedKeys gameState state key
+  | state == Up = (Game ball lost paddle (Set.delete key keys))
+  | state == Down = (Game ball lost paddle (Set.insert key keys))
+  where
+    Game ball lost paddle keys = gameState
+
+transformGame :: Event -> TVar Game -> IO (TVar Game)
+transformGame (EventKey (Char key) state _ _)  gameStateTVar = do
+  gameState <- atomically(readTVar gameStateTVar)
+  let newGameState = updatePressedKeys gameState state key
+  atomically $ writeTVar gameStateTVar $ newGameState
+  return gameStateTVar
+
+transformGame _ gameStateTVar = do 
+  return gameStateTVar
 
 gameLogic :: TVar Game -> IO()
 gameLogic gameStateTVar = do
   gameState <- atomically(readTVar gameStateTVar)
-  let newGameState = moveBall gameState
+  let newGameState = iterateLogic gameState
   atomically $ writeTVar gameStateTVar $ newGameState
   threadDelay (16666)
   gameLogic gameStateTVar
 
 -- Moves the ball and check if passed the bottom of the screen
-moveBall :: Game -> Game
-moveBall gameState =
+iterateLogic :: Game -> Game
+iterateLogic gameState =
   Game {
   ball = collidesWalls oldBall,
   lost = didLose oldBall,
-  paddle = paddle
+  paddle = processInput paddle keys,
+  keys = keys
   }
   where
-    Game oldBall lost paddle = gameState
+    Game oldBall lost paddle keys = gameState
 
 collidesWalls :: Ball -> Ball
 collidesWalls ball
