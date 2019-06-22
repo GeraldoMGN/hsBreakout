@@ -30,8 +30,12 @@ newGame = Game {
 
 createBricks :: Int -> [Vector2]
 createBricks num = [Vector2 x y 
-  | x <- [(0-((brickWidth/2.0)+fromIntegral(screenWidth))),((0-((brickWidth/2.0)+fromIntegral(screenWidth)))+(brickWidth)) .. (fromIntegral(screenWidth) - (brickWidth/2.0))]
-  , y <-[(0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))),(0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))-brickHeight) .. (0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))- fromIntegral(num)*brickHeight)]]
+  | x <- [screenTop , screenTop  + brickWidth  .. fromIntegral(screenWidth) - brickHalfWidth]
+  , y <- [screenLeft, screenLeft - brickHeight .. screenLeft - fromIntegral(num - 1) * brickHeight] ]
+  where brickHalfWidth  = brickWidth  / 2.0
+        brickHalfHeight = brickHeight / 2.0
+        screenTop = -(brickHalfWidth + fromIntegral(screenWidth))
+        screenLeft = fromIntegral(screenHeight `div` 2) - brickHalfHeight
 
 drawBall :: Ball -> Picture
 drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
