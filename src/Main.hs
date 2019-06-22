@@ -24,12 +24,15 @@ newGame = Game {
   lost = False,
   paddle = (0,100),
   keys = Set.empty,
-  bricks = createBricks
+  bricks = createBricks 10
 }
 
-createBricks :: [Vector2]
-createBricks = [(Vector2 0 0), (Vector2 0 20)]
+createBricks :: Int -> [Vector2]
+createBricks num = [Vector2 x y 
+  | x <- [(0-((brickWidth/2.0)+fromIntegral(screenWidth))),((0-((brickWidth/2.0)+fromIntegral(screenWidth)))+(brickWidth)) .. (fromIntegral(screenWidth) - (brickWidth/2.0))]
+  , y <-[(0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))),(0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))-brickHeight) .. (0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))- fromIntegral(num)*brickHeight)]]
 
+  
 drawBall :: Ball -> Picture
 drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
   where
