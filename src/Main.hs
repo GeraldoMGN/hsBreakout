@@ -47,10 +47,28 @@ drawBricks :: [Vector2] -> Picture
 drawBricks bricks = pictures [drawBrick brick | brick <- bricks]
 
 drawBrick :: Vector2 -> Picture
-drawBrick center = pictures [(uncurry translate (posX, posY) $ color brickColor $ rectangleSolid brickWidth brickHeight)]
+drawBrick center = pictures [(uncurry translate (posX, posY) $ color (getColor posY) $ rectangleSolid brickWidth brickHeight)]
   where
     (Vector2 posX posY) = center
+
+
+getColor :: Float -> Color
+getColor posY 
+  | posY == auxGetColor 0 = red
+  | posY == auxGetColor 1 = blue
+  | posY == auxGetColor 2 = green
+  | posY == auxGetColor 3 = white
+  | posY == auxGetColor 4 = yellow
+  | posY == auxGetColor 5 = red
+  | posY == auxGetColor 6 = orange
+  | posY == auxGetColor 7 = red
+  | posY == auxGetColor 8 = orange
+  | posY == auxGetColor 9 = red
+  | posY == auxGetColor 10 = cyan
+  | otherwise = blue
     
+auxGetColor :: Int -> Float
+auxGetColor num = (0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))- fromIntegral(num)*brickHeight)
 
 gameAsPicture :: TVar Game -> IO Picture
 gameAsPicture world = do
