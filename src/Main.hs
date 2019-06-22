@@ -8,7 +8,7 @@ import Control.Concurrent.STM
 import Types
 
 window :: Display
-window = InWindow "hsTetris" (screenWidth, screenHeight) (10, 10)
+window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
 backgroundColor, ballColor :: Color
 backgroundColor = black

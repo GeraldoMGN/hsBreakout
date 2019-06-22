@@ -4,7 +4,7 @@ cabal-version:       >=1.10
 --   For further documentation, see http://haskell.org/cabal/users-guide/
 
 -- The name of the package.
-name:                hsTetris
+name:                hsBreakout
 
 -- The package version.  See the Haskell package versioning policy (PVP)
 -- for standards guiding when and how versions should be incremented.
@@ -15,7 +15,7 @@ name:                hsTetris
 version:             0.1.0.0
 
 -- A short (one-line) description of the package.
-synopsis:            A simple Tetris game in Haskell
+synopsis:            A simple Breakout game in Haskell
 
 -- A longer description of the package.
 -- description:
