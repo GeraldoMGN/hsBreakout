@@ -54,11 +54,13 @@ processInput paddle keys
   | Set.member 'd' keys = movePaddle paddle paddleSpeed
   | otherwise = paddle
 
--- TODO: Check bounds between walls and paddle
 movePaddle :: Paddle -> Float -> Paddle
-movePaddle paddle d = ((posX + d), width)
+movePaddle paddle d 
+  | newPosX <= (fromIntegral(screenWidth `div` 2) - (width/2.0)) && newPosX >= ((-fromIntegral(screenWidth `div` 2)) + (width/2.0)) = (newPosX, width)
+  | otherwise = paddle
   where
     (posX, width) = paddle
+    newPosX = posX + d
 
 updatePressedKeys :: Game -> KeyState -> Char -> Game
 updatePressedKeys gameState state key
@@ -85,11 +87,10 @@ gameLogic gameStateTVar = do
   threadDelay (16666)
   gameLogic gameStateTVar
 
--- Moves the ball and check if passed the bottom of the screen
 iterateLogic :: Game -> Game
 iterateLogic gameState =
   Game {
-  ball = collidesWalls oldBall,
+  ball = collidePaddle (collideWalls oldBall) paddle,
   lost = didLose oldBall,
   paddle = processInput paddle keys,
   keys = keys
@@ -97,8 +98,19 @@ iterateLogic gameState =
   where
     Game oldBall lost paddle keys = gameState
 
-collidesWalls :: Ball -> Ball
-collidesWalls ball
+collidePaddle :: Ball -> Paddle -> Ball
+collidePaddle ball paddle
+  | ballPosY <= -360 && 
+    ballPosY >= -380 && 
+    (ballPosX >= (paddlePosX - (paddleWidth/2))) && (ballPosX <= (paddlePosX + (paddleWidth/2))) = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY))
+  | otherwise = ball
+  where
+    (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
+    (paddlePosX, paddleWidth) = paddle
+
+
+collideWalls :: Ball -> Ball
+collideWalls ball
   | (ballPosX + ballVelX) >=  290 || (ballPosX + ballVelX) <= -290 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
   | (ballPosY + ballVelY) >=  390 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY)) 
   | otherwise                     = (Vector2 (ballPosX + ballVelX) (ballPosY + ballVelY), Vector2 ballVelX ballVelY)
