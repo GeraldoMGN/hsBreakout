@@ -18,18 +18,17 @@ toInt = round
 window :: Display
 window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
-backgroundColor, ballColor, paddleColor :: Color
-backgroundColor = black
-ballColor = white  
-paddleColor = white 
-
 newGame :: Game
 newGame = Game {
   ball = (Vector2 0 (-350), Vector2 5 5),
   lost = False,
   paddle = (0,100),
-  keys = Set.empty
+  keys = Set.empty,
+  bricks = createBricks
 }
+
+createBricks :: [Vector2]
+createBricks = [(Vector2 0 0), (Vector2 0 20)]
 
 drawBall :: Ball -> Picture
 drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
@@ -41,11 +40,20 @@ drawPaddle paddle = pictures [(uncurry translate (posX, (-370)) $ color paddleCo
   where
     (posX, width) = paddle
 
+drawBricks :: [Vector2] -> Picture
+drawBricks bricks = pictures [drawBrick brick | brick <- bricks]
+
+drawBrick :: Vector2 -> Picture
+drawBrick center = pictures [(uncurry translate (posX, posY) $ color brickColor $ rectangleSolid brickWidth brickHeight)]
+  where
+    (Vector2 posX posY) = center
+    
+
 gameAsPicture :: TVar Game -> IO Picture
 gameAsPicture world = do
   gameState <- atomically(readTVar world)
-  let Game ball _ paddle _ = gameState
-  let pics = pictures[(drawBall ball), (drawPaddle paddle)] in
+  let Game ball _ paddle _ bricks = gameState
+  let pics = pictures[(drawBall ball), (drawPaddle paddle), (drawBricks bricks)] in
     return pics
 
 processInput :: Paddle -> Set.Set Char -> Paddle
@@ -56,7 +64,8 @@ processInput paddle keys
 
 movePaddle :: Paddle -> Float -> Paddle
 movePaddle paddle d 
-  | newPosX <= (fromIntegral(screenWidth `div` 2) - (width/2.0)) && newPosX >= ((-fromIntegral(screenWidth `div` 2)) + (width/2.0)) = (newPosX, width)
+  | newPosX <= (fromIntegral(screenWidth `div` 2) - (width/2.0)) 
+    && newPosX >= ((-fromIntegral(screenWidth `div` 2)) + (width/2.0)) = (newPosX, width)
   | otherwise = paddle
   where
     (posX, width) = paddle
@@ -64,10 +73,10 @@ movePaddle paddle d
 
 updatePressedKeys :: Game -> KeyState -> Char -> Game
 updatePressedKeys gameState state key
-  | state == Up = (Game ball lost paddle (Set.delete key keys))
-  | state == Down = (Game ball lost paddle (Set.insert key keys))
+  | state == Up = (Game ball lost paddle (Set.delete key keys) bricks)
+  | state == Down = (Game ball lost paddle (Set.insert key keys) bricks)
   where
-    Game ball lost paddle keys = gameState
+    Game ball lost paddle keys bricks = gameState
 
 transformGame :: Event -> TVar Game -> IO (TVar Game)
 transformGame (EventKey (Char key) state _ _)  gameStateTVar = do
@@ -93,10 +102,11 @@ iterateLogic gameState =
   ball = collidePaddle (collideWalls oldBall) paddle,
   lost = didLose oldBall,
   paddle = processInput paddle keys,
-  keys = keys
+  keys = keys,
+  bricks = bricks
   }
   where
-    Game oldBall lost paddle keys = gameState
+    Game oldBall lost paddle keys bricks = gameState
 
 collidePaddle :: Ball -> Paddle -> Ball
 collidePaddle ball paddle

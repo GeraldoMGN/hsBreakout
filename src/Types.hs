@@ -9,6 +9,16 @@ module Types where
   paddleSpeed :: Float
   paddleSpeed = 7.0
 
+  brickHeight, brickWidth :: Float
+  brickHeight = 18.0
+  brickWidth = 60.0
+
+  backgroundColor, ballColor, paddleColor, brickColor :: Color
+  backgroundColor = black
+  ballColor = white  
+  paddleColor = white 
+  brickColor = red 
+
   type Ball = (Vector2, Vector2)
 
   -- X position, width
@@ -18,7 +28,8 @@ module Types where
     ball :: Ball,
     lost :: Bool,
     paddle :: Paddle,
-    keys :: Set.Set Char
+    keys :: Set.Set Char,
+    bricks :: [Vector2]
   }
 
   data Vector2 = Vector2 {
