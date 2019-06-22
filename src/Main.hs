@@ -21,7 +21,7 @@ window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
 newGame :: Game
 newGame = Game {
-  ball = (Vector2 0 (-340), Vector2 5 5),
+  ball = (Vector2 0 (-340), Vector2 4 4),
   lost = False,
   paddle = (0,100),
   keys = Set.empty,
@@ -30,12 +30,12 @@ newGame = Game {
 
 createBricks :: Int -> [Vector2]
 createBricks num = [Vector2 x y 
-  | x <- [screenTop , screenTop  + brickWidth  .. fromIntegral(screenWidth) - brickHalfWidth]
-  , y <- [screenLeft, screenLeft - brickHeight .. screenLeft - fromIntegral(num - 1) * brickHeight] ]
+  | x <- [screenLeft, screenLeft + brickWidth  .. fromIntegral(screenWidth) - brickHalfWidth]
+  , y <- [screenTop , screenTop  - brickHeight .. screenTop - fromIntegral(num - 1) * brickHeight] ]
   where brickHalfWidth  = brickWidth  / 2.0
         brickHalfHeight = brickHeight / 2.0
-        screenTop = -(brickHalfWidth + fromIntegral(screenWidth))
-        screenLeft = fromIntegral(screenHeight `div` 2) - brickHalfHeight
+        screenLeft = -(brickHalfWidth + fromIntegral(screenWidth))
+        screenTop = fromIntegral(screenHeight `div` 2) - brickHalfHeight
 
 drawBall :: Ball -> Picture
 drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
@@ -69,9 +69,7 @@ getColor posY
   | posY == auxGetColor 9 = red
   | posY == auxGetColor 10 = cyan
   | otherwise = blue
-    
-auxGetColor :: Int -> Float
-auxGetColor num = (0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))- fromIntegral(num)*brickHeight)
+  where auxGetColor num = fromIntegral(screenHeight `div` 2) - brickHeight/2.0 - fromIntegral(num)*brickHeight
 
 gameAsPicture :: TVar Game -> IO Picture
 gameAsPicture world = do
@@ -150,7 +148,7 @@ collide gameState =
 
 collideBricks :: Ball -> [Vector2] -> (Ball, [Vector2])
 collideBricks ball (brick:bricks)
-  | didCollideBrick ball brick == True = (tailBall, tailBricks)
+  | didCollideBrick ball brick == True = (collidedBall, bricks)
   | otherwise = (tailBall, brick:tailBricks)
   where 
     collidedBall = (reboundDirection ball brick)
@@ -159,8 +157,8 @@ collideBricks ball [] = (ball,[])
 
 didCollideBrick :: Ball -> Vector2 -> Bool
 didCollideBrick ball brick
-  | brickMinX <= ballMaxX && brickMaxX >= ballMinX &&
-    brickMinY <= ballMaxY && brickMaxY >= ballMinY = True
+  | brickMinX < ballMaxX && brickMaxX > ballMinX &&
+    brickMinY < ballMaxY && brickMaxY > ballMinY = True
   | otherwise = False
     where
       (Vector2 ballPosX ballPosY, _) = ball
@@ -187,15 +185,15 @@ undoStep ball = (Vector2 newX newY)
         newX = posX - velX
         newY = posY - velY
 
-
 bounds :: Vector2 -> Float -> Float -> (Vector2, Vector2)    
 bounds (Vector2 posX posY) width height = ((Vector2 (posX - width/2.0) (posY - height/2.0)), (Vector2 (posX + width/2.0) (posY + height/2.0)))
 
 collidePaddle :: Ball -> Paddle -> Ball
 collidePaddle ball paddle
   | ballPosY <= -360 && 
-    ballPosY >= -380 && 
-    (ballPosX >= (paddlePosX - (paddleWidth/2))) && (ballPosX <= (paddlePosX + (paddleWidth/2))) = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY))
+    ballPosY >= -370 && 
+    ballPosX >= paddlePosX - paddleWidth/2 && 
+    ballPosX <= paddlePosX + paddleWidth/2 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY))
   | otherwise = ball
   where
     (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
@@ -216,7 +214,7 @@ didLose ball =
   where
     (Vector2 ballPosX ballPosY, _) = ball
     
-update seconds int = return int
+update seconds gameState = return gameState
 
 main :: IO ()
 main = do
