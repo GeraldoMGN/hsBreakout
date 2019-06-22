@@ -7,30 +7,41 @@ import Control.Concurrent.STM
 
 import Types
 
+toInt :: Float -> Int
+toInt = round
+
 window :: Display
 window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
-backgroundColor, ballColor :: Color
+backgroundColor, ballColor, paddleColor :: Color
 backgroundColor = black
 ballColor = white  
+paddleColor = white 
 
 newGame :: Game
 newGame = Game {
   ball = (Vector2 0 (-350), Vector2 5 5),
-  lost = False
+  lost = False,
+  paddle = (0,60)
 }
 
-drawBall :: Game -> Picture
-drawBall world = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
+drawBall :: Ball -> Picture
+drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
   where
-    (Vector2 posX posY ,_) = ball world
+    (Vector2 posX posY ,_) = ball
+
+drawPaddle :: Paddle -> Picture
+drawPaddle paddle = pictures [(uncurry translate (posX, (-370)) $ color paddleColor $ rectangleSolid width 10)]
+  where
+    (posX, width) = paddle
 
 gameAsPicture :: TVar Game -> IO Picture
 gameAsPicture world = do
-  temp <- atomically(readTVar world)
-  let pics = pictures[drawBall temp] in
+  gameState <- atomically(readTVar world)
+  let Game ball lost paddle = gameState
+  let pics = pictures[(drawBall ball), (drawPaddle paddle)] in
     return pics
-    
+
 
 transformGame :: Event -> TVar Game -> IO (TVar Game )
 transformGame _ game = do 
@@ -50,15 +61,15 @@ moveBall :: Game -> Game
 moveBall gameState =
   Game {
   ball = collidesWalls oldBall,
-  lost = didLose oldBall
+  lost = didLose oldBall,
+  paddle = paddle
   }
   where
-    Game oldBall lost = gameState
+    Game oldBall lost paddle = gameState
 
 collidesWalls :: Ball -> Ball
 collidesWalls ball
-  | (ballPosX + ballVelX) >=  290 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
-  | (ballPosX + ballVelX) <= -290 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
+  | (ballPosX + ballVelX) >=  290 || (ballPosX + ballVelX) <= -290 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
   | (ballPosY + ballVelY) >=  390 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY)) 
   | otherwise                     = (Vector2 (ballPosX + ballVelX) (ballPosY + ballVelY), Vector2 ballVelX ballVelY)
   where
@@ -74,7 +85,8 @@ update seconds int = return int
 
 main :: IO ()
 main = do
-  temp <- atomically(newTVar newGame)
-  forkIO $ gameLogic temp
-  playIO window backgroundColor 60 temp gameAsPicture transformGame update
+  gameStatusTVar <- atomically(newTVar newGame)
+  forkIO $ gameLogic gameStatusTVar
+
+  playIO window backgroundColor 60 gameStatusTVar gameAsPicture transformGame update
 
