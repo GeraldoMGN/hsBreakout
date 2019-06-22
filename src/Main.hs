@@ -32,7 +32,6 @@ createBricks num = [Vector2 x y
   | x <- [(0-((brickWidth/2.0)+fromIntegral(screenWidth))),((0-((brickWidth/2.0)+fromIntegral(screenWidth)))+(brickWidth)) .. (fromIntegral(screenWidth) - (brickWidth/2.0))]
   , y <-[(0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))),(0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))-brickHeight) .. (0+(fromIntegral(screenHeight `div` 2)-(brickHeight/2.0))- fromIntegral(num)*brickHeight)]]
 
-  
 drawBall :: Ball -> Picture
 drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
   where
@@ -50,7 +49,6 @@ drawBrick :: Vector2 -> Picture
 drawBrick center = pictures [(uncurry translate (posX, posY) $ color (getColor posY) $ rectangleSolid brickWidth brickHeight)]
   where
     (Vector2 posX posY) = center
-
 
 getColor :: Float -> Color
 getColor posY 
@@ -144,16 +142,6 @@ collide gameState =
       }
   where
     Game ball lost paddle keys bricks = gameState
-{-
-collideBricks :: Ball -> [Vector2] -> (Ball, [Vector2])
-collideBricks ball (brick:bricks)
-  | ballPosX == 0 = collideBricks bricks
-  | otherwise = (ball, (Vector2 brickPosX brickPosY):tail)
-  where 
-    (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
-    (Vector2 brickPosX brickPosY) = brick
-    tail@(newBall, newBricks) = collideBricks ball bricks
--}
 
 collideBricks :: Ball -> [Vector2] -> (Ball, [Vector2])
 collideBricks ball (brick:bricks) = (tailBall, collidedBrick:tailBricks)
