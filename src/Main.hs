@@ -20,7 +20,7 @@ window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
 newGame :: Game
 newGame = Game {
-  ball = (Vector2 0 (-350), Vector2 5 5),
+  ball = (Vector2 0 (-340), Vector2 5 5),
   lost = False,
   paddle = (0,100),
   keys = Set.empty,
@@ -102,14 +102,83 @@ gameLogic gameStateTVar = do
 iterateLogic :: Game -> Game
 iterateLogic gameState =
   Game {
-  ball = collidePaddle (collideWalls oldBall) paddle,
+  ball = newBall,
   lost = didLose oldBall,
   paddle = processInput paddle keys,
   keys = keys,
-  bricks = bricks
+  bricks = newBricks
   }
   where
-    Game oldBall lost paddle keys bricks = gameState
+    Game oldBall lost paddle keys oldBricks = gameState
+    Game newBall _ _ _ newBricks = collide gameState
+
+collide :: Game -> Game
+collide gameState = 
+  let ballWallCollided = collideWalls ball
+      ballPaddleCollided = collidePaddle ballWallCollided paddle
+      collidedBricks@(newBall, newBricks) = collideBricks ballPaddleCollided bricks in
+        Game { 
+          ball = newBall,
+          lost = lost,
+          paddle = paddle,
+          keys = keys,     
+          bricks = newBricks
+      }
+  where
+    Game ball lost paddle keys bricks = gameState
+{-
+collideBricks :: Ball -> [Vector2] -> (Ball, [Vector2])
+collideBricks ball (brick:bricks)
+  | ballPosX == 0 = collideBricks bricks
+  | otherwise = (ball, (Vector2 brickPosX brickPosY):tail)
+  where 
+    (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
+    (Vector2 brickPosX brickPosY) = brick
+    tail@(newBall, newBricks) = collideBricks ball bricks
+-}
+
+collideBricks :: Ball -> [Vector2] -> (Ball, [Vector2])
+collideBricks ball (brick:bricks) = (tailBall, collidedBrick:tailBricks)
+  where 
+    (collidedBall, collidedBrick) = collideBrick ball brick
+    (tailBall, tailBricks) = collideBricks collidedBall bricks
+collideBricks ball [] = (ball,[])
+
+collideBrick :: Ball -> Vector2 -> (Ball, Vector2)
+collideBrick ball brick
+  | brickMinX <= ballMaxX && brickMaxX >= ballMinX &&
+    brickMinY <= ballMaxY && brickMaxY >= ballMinY
+    = ((Vector2 ballPosX ballPosY, (reboundDirection ball brick)), (Vector2 (-1000) (-1000)))
+  | otherwise = (ball,brick)
+  where
+    (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
+    (Vector2 brickPosX brickPosY) = brick
+    ((Vector2 brickMinX brickMinY),(Vector2 brickMaxX brickMaxY)) = bounds brick brickWidth brickHeight
+    ((Vector2 ballMinX ballMinY),(Vector2 ballMaxX ballMaxY)) = bounds (Vector2 ballPosX ballPosY) 10 10
+
+didCollideBrick :: Ball -> Vector2 -> Bool
+didCollideBrick ball brick
+  | brickMinX <= ballMaxX && brickMaxX >= ballMinX &&
+    brickMinY <= ballMaxY && brickMaxY >= ballMinY = True
+  | otherwise = False
+    where
+      (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
+      (Vector2 brickPosX brickPosY) = brick
+      ((Vector2 brickMinX brickMinY),(Vector2 brickMaxX brickMaxY)) = bounds brick brickWidth brickHeight
+      ((Vector2 ballMinX ballMinY),(Vector2 ballMaxX ballMaxY)) = bounds (Vector2 ballPosX ballPosY) 10 10
+
+reboundDirection :: Ball -> Vector2 -> Vector2
+reboundDirection ball brick
+  | didCollideBrick ballX brick == True = (Vector2 ballVelX (-ballVelY))
+  | otherwise = (Vector2 (-ballVelX) ballVelY)
+  where
+    (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
+    (Vector2 brickPosX brickPosY) = brick
+    ballX = (Vector2 (ballPosX - ballVelX) ballPosY, Vector2 0 0)
+    ballY = (Vector2 ballPosX (ballPosY - ballVelY), Vector2 0 0)
+
+bounds :: Vector2 -> Float -> Float -> (Vector2, Vector2)    
+bounds (Vector2 posX posY) width height = ((Vector2 (posX - width/2.0) (posY - height/2.0)), (Vector2 (posX + width/2.0) (posY + height/2.0)))
 
 collidePaddle :: Ball -> Paddle -> Ball
 collidePaddle ball paddle
