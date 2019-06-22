@@ -10,6 +10,7 @@ import Types
 
 {- TODOS
 - Use the arrow keys
+- Fix ball paddle side collision bug
 -}
 
 toInt :: Float -> Int
@@ -154,7 +155,7 @@ collideBrick :: Ball -> Vector2 -> (Ball, Vector2)
 collideBrick ball brick
   | brickMinX <= ballMaxX && brickMaxX >= ballMinX &&
     brickMinY <= ballMaxY && brickMaxY >= ballMinY
-    = ((Vector2 ballPosX ballPosY, (reboundDirection ball brick)), (Vector2 (-1000) (-1000)))
+    = ((reboundDirection ball brick), (Vector2 (-1000) (-1000)))
   | otherwise = (ball,brick)
   where
     (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
@@ -173,10 +174,11 @@ didCollideBrick ball brick
       ((Vector2 brickMinX brickMinY),(Vector2 brickMaxX brickMaxY)) = bounds brick brickWidth brickHeight
       ((Vector2 ballMinX ballMinY),(Vector2 ballMaxX ballMaxY)) = bounds (Vector2 ballPosX ballPosY) 10 10
 
-reboundDirection :: Ball -> Vector2 -> Vector2
+reboundDirection :: Ball -> Vector2 -> Ball
 reboundDirection ball brick
-  | didCollideBrick ballX brick == True = (Vector2 ballVelX (-ballVelY))
-  | otherwise = (Vector2 (-ballVelX) ballVelY)
+  | didCollideBrick ballX brick == True && didCollideBrick ballY brick == True = ((Vector2 (ballPosX - ballVelX) (ballPosY - ballVelY)),(Vector2 (-ballVelX) (-ballVelY)))
+  | didCollideBrick ballX brick == True = ((Vector2 (ballPosX - ballVelX) (ballPosY - ballVelY)),(Vector2 ballVelX (-ballVelY)))
+  | otherwise = ((Vector2 (ballPosX - ballVelX) (ballPosY - ballVelY)),(Vector2 (-ballVelX) ballVelY))
   where
     (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
     (Vector2 brickPosX brickPosY) = brick
