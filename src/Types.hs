@@ -10,8 +10,8 @@ module Types where
   paddleSpeed = 7.0
 
   brickHeight, brickWidth :: Float
-  brickHeight = 18.0
-  brickWidth = 60.0
+  brickHeight = 16.0
+  brickWidth = 58.0
 
   backgroundColor, ballColor, paddleColor, brickColor :: Color
   backgroundColor = black

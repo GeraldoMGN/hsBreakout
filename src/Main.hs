@@ -30,15 +30,15 @@ newGame = Game {
 
 createBricks :: Int -> [Vector2]
 createBricks num = [Vector2 x y 
-  | x <- [screenLeft, screenLeft + brickWidth  .. fromIntegral(screenWidth) - brickHalfWidth]
-  , y <- [screenTop , screenTop  - brickHeight .. screenTop - fromIntegral(num - 1) * brickHeight] ]
+  | x <- [screenLeft, screenLeft + (brickWidth + 2) .. fromIntegral(screenWidth `div` 2) - brickHalfWidth]
+  , y <- [screenTop , screenTop  - (brickHeight+ 2) .. screenTop - fromIntegral(num - 1) * (brickHeight + 2)] ]
   where brickHalfWidth  = brickWidth  / 2.0
         brickHalfHeight = brickHeight / 2.0
-        screenLeft = -(brickHalfWidth + fromIntegral(screenWidth))
+        screenLeft = brickHalfWidth - fromIntegral(screenWidth `div` 2) + 1
         screenTop = fromIntegral(screenHeight `div` 2) - brickHalfHeight
 
 drawBall :: Ball -> Picture
-drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ circleSolid 10)]
+drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ rectangleSolid 10 10)]
   where
     (Vector2 posX posY ,_) = ball
 
@@ -58,18 +58,19 @@ drawBrick center = pictures [(uncurry translate (posX, posY) $ color (getColor p
 getColor :: Float -> Color
 getColor posY 
   | posY == auxGetColor 0 = red
-  | posY == auxGetColor 1 = blue
-  | posY == auxGetColor 2 = green
-  | posY == auxGetColor 3 = white
-  | posY == auxGetColor 4 = yellow
-  | posY == auxGetColor 5 = red
-  | posY == auxGetColor 6 = orange
-  | posY == auxGetColor 7 = red
-  | posY == auxGetColor 8 = orange
-  | posY == auxGetColor 9 = red
-  | posY == auxGetColor 10 = cyan
+  | posY == auxGetColor 1 = red
+  | posY == auxGetColor 2 = orange
+  | posY == auxGetColor 3 = orange
+  | posY == auxGetColor 4 = green
+  | posY == auxGetColor 5 = green
+  | posY == auxGetColor 6 = yellow
+  | posY == auxGetColor 7 = yellow
+  | posY == auxGetColor 8 = blue
+  | posY == auxGetColor 9 = blue
+  | posY == auxGetColor 10 = magenta 
+  | posY == auxGetColor 11 = magenta 
   | otherwise = blue
-  where auxGetColor num = fromIntegral(screenHeight `div` 2) - brickHeight/2.0 - fromIntegral(num)*brickHeight
+  where auxGetColor num = fromIntegral(screenHeight `div` 2) - (brickHeight)/2.0 - fromIntegral(num)*(brickHeight+2)
 
 gameAsPicture :: TVar Game -> IO Picture
 gameAsPicture world = do
@@ -202,8 +203,8 @@ collidePaddle ball paddle
 
 collideWalls :: Ball -> Ball
 collideWalls ball
-  | (ballPosX + ballVelX) >=  290 || (ballPosX + ballVelX) <= -290 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
-  | (ballPosY + ballVelY) >=  390 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY)) 
+  | (ballPosX + ballVelX) >=  295 || (ballPosX + ballVelX) <= -295 = (Vector2 ballPosX ballPosY, Vector2 (-ballVelX) ballVelY)
+  | (ballPosY + ballVelY) >=  395 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY)) 
   | otherwise                     = (Vector2 (ballPosX + ballVelX) (ballPosY + ballVelY), Vector2 ballVelX ballVelY)
   where
     (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
