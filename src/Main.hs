@@ -72,12 +72,18 @@ getColor posY
   | otherwise = blue
   where auxGetColor num = fromIntegral(screenHeight `div` 2) - (brickHeight)/2.0 - fromIntegral(num)*(brickHeight+2)
 
-gameAsPicture :: TVar Game -> IO Picture
-gameAsPicture world = do
-  gameState <- atomically(readTVar world)
+gameAsPicture :: TVar Picture ->TVar Game -> IO Picture
+gameAsPicture renderBufferTVar gameStateTVar = do
+  gameState <- atomically(readTVar gameStateTVar)
+  renderBuffer <- atomically(readTVar renderBufferTVar)
+  forkIO $ gameRender renderBufferTVar gameState
+  return renderBuffer
+
+gameRender :: TVar Picture -> Game -> IO ()
+gameRender renderBufferTVar gameState = do
   let Game ball _ paddle _ bricks = gameState
   let pics = pictures[(drawBall ball), (drawPaddle paddle), (drawBricks bricks)] in
-    return pics
+    atomically (writeTVar renderBufferTVar pics)
 
 processInput :: Paddle -> Set.Set Char -> Paddle
 processInput paddle keys
@@ -116,8 +122,6 @@ gameLogic gameStateTVar = do
   gameState <- atomically(readTVar gameStateTVar)
   let newGameState = iterateLogic gameState
   atomically $ writeTVar gameStateTVar $ newGameState
-  threadDelay (16666)
-  gameLogic gameStateTVar
 
 iterateLogic :: Game -> Game
 iterateLogic gameState =
@@ -215,12 +219,14 @@ didLose ball =
   where
     (Vector2 ballPosX ballPosY, _) = ball
     
-update seconds gameState = return gameState
+update seconds gameState = do
+  forkIO $ gameLogic gameState
+  return gameState
 
 main :: IO ()
 main = do
   gameStatusTVar <- atomically(newTVar newGame)
-  forkIO $ gameLogic gameStatusTVar
+  renderBufferTVar <- atomically(newTVar (pictures[(rectangleSolid 0 0)]))
 
-  playIO window backgroundColor 60 gameStatusTVar gameAsPicture transformGame update
+  playIO window backgroundColor 60 gameStatusTVar (gameAsPicture renderBufferTVar) transformGame update
 
