@@ -153,7 +153,7 @@ collide gameState =
 
 collideBricks :: Ball -> [Vector2] -> (Ball, [Vector2])
 collideBricks ball (brick:bricks)
-  | didCollideBrick ball brick == True = (collidedBall, bricks)
+  | didCollideBrick ball brick = (collidedBall, bricks)
   | otherwise = (tailBall, brick:tailBricks)
   where 
     collidedBall = (reboundDirection ball brick)
@@ -198,7 +198,7 @@ collidePaddle ball paddle
   | ballPosY <= -360 && 
     ballPosY >= -370 && 
     ballPosX >= paddlePosX - paddleWidth/2 && 
-    ballPosX <= paddlePosX + paddleWidth/2 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (-ballVelY))
+    ballPosX <= paddlePosX + paddleWidth/2 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (abs ballVelY))
   | otherwise = ball
   where
     (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
