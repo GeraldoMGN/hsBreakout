@@ -26,10 +26,16 @@ module Types where
 
   data Game = Game { 
     ball :: Ball,
-    lost :: Bool,
+    conditions :: Conditions,
     paddle :: Paddle,
     keys :: Set.Set Char,
     bricks :: [Vector2]
+  }
+
+  data Conditions = Conditions {
+    started :: Bool,
+    lost :: Bool,
+    win :: Bool
   }
 
   data Vector2 = Vector2 {
