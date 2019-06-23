@@ -10,7 +10,6 @@ import Types
 
 {- TODOS
 - Use the arrow keys
-- Fix ball paddle side collision bug
 -}
 
 toInt :: Float -> Int
@@ -19,11 +18,29 @@ toInt = round
 window :: Display
 window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
-newGame :: Game
-newGame = Game {
-  ball = (Vector2 0 (-340), Vector2 4 4),
+newEasyGame :: Game
+newEasyGame = Game {
+  ball = (Vector2 0 (-340), Vector2 2 2),
   lost = False,
   paddle = (0,100),
+  keys = Set.empty,
+  bricks = createBricks 6
+}
+
+newMediumGame :: Game
+newMediumGame = Game {
+  ball = (Vector2 0 (-340), Vector2 4 4),
+  lost = False,
+  paddle = (0,80),
+  keys = Set.empty,
+  bricks = createBricks 8
+}
+
+newHardGame :: Game
+newHardGame = Game {
+  ball = (Vector2 0 (-340), Vector2 5 5),
+  lost = False,
+  paddle = (0,60),
   keys = Set.empty,
   bricks = createBricks 10
 }
@@ -108,6 +125,18 @@ updatePressedKeys gameState state key
     Game ball lost paddle keys bricks = gameState
 
 transformGame :: Event -> TVar Game -> IO (TVar Game)
+transformGame (EventKey (Char '1') Down _ _)  gameStateTVar = do
+  atomically $ writeTVar gameStateTVar $ newEasyGame
+  return gameStateTVar
+
+transformGame (EventKey (Char '2') Down _ _)  gameStateTVar = do
+  atomically $ writeTVar gameStateTVar $ newMediumGame
+  return gameStateTVar
+
+transformGame (EventKey (Char '3') Down _ _)  gameStateTVar = do
+  atomically $ writeTVar gameStateTVar $ newHardGame
+  return gameStateTVar
+
 transformGame (EventKey (Char key) state _ _)  gameStateTVar = do
   gameState <- atomically(readTVar gameStateTVar)
   let newGameState = updatePressedKeys gameState state key
@@ -225,7 +254,7 @@ update seconds gameState = do
 
 main :: IO ()
 main = do
-  gameStatusTVar <- atomically(newTVar newGame)
+  gameStatusTVar <- atomically(newTVar newEasyGame)
   renderBufferTVar <- atomically(newTVar (pictures[(rectangleSolid 0 0)]))
 
   playIO window backgroundColor 60 gameStatusTVar (gameAsPicture renderBufferTVar) transformGame update
