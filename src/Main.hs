@@ -98,20 +98,24 @@ gameAsPicture renderBufferTVar gameStateTVar = do
 
 gameRender :: TVar Picture -> Game -> IO ()
 gameRender renderBufferTVar gameState = do
-  let Game ball conditions paddle _ bricks = gameState
-      Conditions started lost win = conditions
-  if started
-  then let pics = pictures[(drawBall ball), (drawPaddle paddle), (drawBricks bricks)] in
-    atomically (writeTVar renderBufferTVar pics)
-  else let pics = drawMainScreen in 
-    atomically (writeTVar renderBufferTVar pics)
+  atomically (writeTVar renderBufferTVar (chooseScreen gameState))
   
-drawMainScreen :: Picture
-drawMainScreen = pictures[(scale 0.4  0.4  $ uncurry translate (-300 ,  200) $ color red $ Text "hsBreakout"),
-                          (scale 0.18 0.18 $ uncurry translate (-1550,  100) $ color white $ Text "Aperte 1 2 ou 3 para selecionar a dificuldade"),
-                          (scale 0.18 0.18 $ uncurry translate (-950 , -100) $ color white $ Text "1: Facil  2: Medio  3: Dificil"),
-                          (scale 0.18 0.18 $ uncurry translate (-1100, -300) $ color white $ Text "Aperte durante o jogo para resetar")
-                          ]
+chooseScreen :: Game -> Picture
+chooseScreen gameState
+  | win  = 
+    pictures[(scale 0.4  0.4  $ uncurry translate (-400 ,  200) $ color blue  $ text "Voce ganhou!"),
+             (scale 0.18 0.18 $ uncurry translate (-1550,  100) $ color white $ Text "Aperte 1 2 ou 3 para selecionar a dificuldade")]
+  | lost = 
+    pictures[(scale 0.4  0.4  $ uncurry translate (-400 ,  200) $ color red   $ text "Voce perdeu!"),
+             (scale 0.18 0.18 $ uncurry translate (-1550,  100) $ color white $ Text "Aperte 1 2 ou 3 para selecionar a dificuldade")]
+  | started == False = 
+    pictures[(scale 0.4  0.4  $ uncurry translate (-300 ,  200) $ color red   $ Text "hsBreakout"),
+             (scale 0.18 0.18 $ uncurry translate (-1550,  100) $ color white $ Text "Aperte 1 2 ou 3 para selecionar a dificuldade"),
+             (scale 0.18 0.18 $ uncurry translate (-950 , -100) $ color white $ Text "1: Facil  2: Medio  3: Dificil"),
+             (scale 0.18 0.18 $ uncurry translate (-1100, -300) $ color white $ Text "Aperte durante o jogo para resetar")]
+  | otherwise = pictures[(drawBall ball), (drawPaddle paddle), (drawBricks bricks)]
+  where Game ball conditions paddle _ bricks = gameState
+        Conditions started lost win = conditions
 
 processInput :: Paddle -> Set.Set Char -> Paddle
 processInput paddle keys
@@ -130,10 +134,10 @@ movePaddle paddle d
 
 updatePressedKeys :: Game -> KeyState -> Char -> Game
 updatePressedKeys gameState state key
-  | state == Up = (Game ball lost paddle (Set.delete key keys) bricks)
-  | state == Down = (Game ball lost paddle (Set.insert key keys) bricks)
+  | state == Up = (Game ball conditions paddle (Set.delete key keys) bricks)
+  | state == Down = (Game ball conditions paddle (Set.insert key keys) bricks)
   where
-    Game ball lost paddle keys bricks = gameState
+    Game ball conditions paddle keys bricks = gameState
 
 transformGame :: Event -> TVar Game -> IO (TVar Game)
 transformGame (EventKey (Char '1') Down _ _)  gameStateTVar = do
@@ -167,7 +171,7 @@ iterateLogic :: Game -> Game
 iterateLogic gameState =
   Game {
   ball = newBall,
-  conditions = Conditions started (didLose newBall) win,
+  conditions = Conditions started (didLose newBall) (didWin newBricks),
   paddle = processInput paddle keys,
   keys = keys,
   bricks = newBricks
@@ -259,6 +263,9 @@ didLose ball =
   ballPosY < (-390)
   where
     (Vector2 ballPosX ballPosY, _) = ball
+
+didWin :: [Vector2] -> Bool
+didWin bricks = length bricks == 0
     
 update seconds gameState = do
   forkIO $ gameLogic gameState
@@ -271,7 +278,7 @@ main = do
     conditions = Conditions False False False,
     paddle = (0,0),
     keys = Set.empty,
-    bricks = createBricks 0
+    bricks = createBricks 1
   })
   renderBufferTVar <- atomically(newTVar (pictures[(rectangleSolid 0 0)]))
 
