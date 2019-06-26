@@ -20,7 +20,7 @@ window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
 newEasyGame :: Game
 newEasyGame = Game {
-  ball = (Vector2 0 (-340), Vector2 2 2),
+  ball = (Vector2 0 (-340), Vector2 2 3),
   conditions = Conditions True False False,
   paddle = (0,100),
   keys = Set.empty,
@@ -29,7 +29,7 @@ newEasyGame = Game {
 
 newMediumGame :: Game
 newMediumGame = Game {
-  ball = (Vector2 0 (-340), Vector2 4 4),
+  ball = (Vector2 0 (-340), Vector2 4 5),
   conditions = Conditions True False False,
   paddle = (0,80),
   keys = Set.empty,
@@ -38,7 +38,7 @@ newMediumGame = Game {
 
 newHardGame :: Game
 newHardGame = Game {
-  ball = (Vector2 0 (-340), Vector2 5 5),
+  ball = (Vector2 0 (-340), Vector2 5 6),
   conditions = Conditions True False False,
   paddle = (0,60),
   keys = Set.empty,
@@ -154,8 +154,8 @@ transformGame (EventKey (Char '3') Down _ _)  gameStateTVar = do
 
 transformGame (EventKey (Char key) state _ _)  gameStateTVar = do
   gameState <- atomically(readTVar gameStateTVar)
-  let newGameState = updatePressedKeys gameState state key
-  atomically $ writeTVar gameStateTVar $ newGameState
+  let newGameState = updatePressedKeys gameState state key in
+    atomically $ writeTVar gameStateTVar $ newGameState
   return gameStateTVar
 
 transformGame _ gameStateTVar = do 
@@ -164,21 +164,20 @@ transformGame _ gameStateTVar = do
 gameLogic :: TVar Game -> IO()
 gameLogic gameStateTVar = do
   gameState <- atomically(readTVar gameStateTVar)
-  let newGameState = iterateLogic gameState
-  atomically $ writeTVar gameStateTVar $ newGameState
+  let newGameState = iterateLogic gameState in
+    atomically $ writeTVar gameStateTVar $ newGameState
 
 iterateLogic :: Game -> Game
 iterateLogic gameState =
   Game {
-  ball = newBall,
-  conditions = Conditions started (didLose newBall) (didWin newBricks),
+  ball = ball,
+  conditions = Conditions started (didLose ball) (didWin bricks),
   paddle = processInput paddle keys,
   keys = keys,
-  bricks = newBricks
+  bricks = bricks
   }
   where
-    Game oldBall conditions paddle keys oldBricks = gameState
-    Game newBall _ _ _ newBricks = collide gameState
+    Game ball conditions paddle keys bricks = collide gameState
     Conditions started lost win = conditions
 
 collide :: Game -> Game
@@ -201,9 +200,10 @@ collideBricks ball (brick:bricks)
   | didCollideBrick ball brick = (collidedBall, bricks)
   | otherwise = (tailBall, brick:tailBricks)
   where 
-    collidedBall = (reboundDirection ball brick)
-    (tailBall, tailBricks) = collideBricks collidedBall bricks
+    collidedBall = reboundDirection ball brick
+    (tailBall, tailBricks) = collideBricks ball bricks
 collideBricks ball [] = (ball,[])
+
 
 didCollideBrick :: Ball -> Vector2 -> Bool
 didCollideBrick ball brick
@@ -213,19 +213,17 @@ didCollideBrick ball brick
     where
       (Vector2 ballPosX ballPosY, _) = ball
       (Vector2 brickPosX brickPosY) = brick
-      ((Vector2 brickMinX brickMinY),(Vector2 brickMaxX brickMaxY)) = bounds brick brickWidth brickHeight
-      ((Vector2 ballMinX ballMinY),(Vector2 ballMaxX ballMaxY)) = bounds (Vector2 ballPosX ballPosY) 10 10
+      (Vector2 brickMinX brickMinY, Vector2 brickMaxX brickMaxY) = bounds brick brickWidth brickHeight
+      (Vector2 ballMinX ballMinY,Vector2 ballMaxX ballMaxY) = bounds (Vector2 ballPosX ballPosY) 10 10
 
 reboundDirection :: Ball -> Vector2 -> Ball
 reboundDirection ball brick
-  | didCollideBrick ballX brick && 
-    didCollideBrick ballY brick = ((undoStep ball),(Vector2 (-ballVelX) (-ballVelY)))
-  | didCollideBrick ballX brick = ((undoStep ball),(Vector2 ballVelX (-ballVelY)))
-  | didCollideBrick ballY brick = ((undoStep ball),(Vector2 (-ballVelX) ballVelY))
-  | otherwise                   = ball
+  | didCollideBrick ballX brick = (undoStep ball, Vector2 ballVelX (-ballVelY))
+  | didCollideBrick ballY brick = (undoStep ball, Vector2 (-ballVelX) ballVelY)
+  | otherwise                   = (undoStep ball, Vector2 (-ballVelX) (-ballVelY))
   where
     (Vector2 ballPosX ballPosY, Vector2 ballVelX ballVelY) = ball
-    (Vector2 brickPosX brickPosY) = brick
+    Vector2 brickPosX brickPosY = brick
     ballX = (Vector2 (ballPosX - ballVelX) ballPosY, Vector2 0 0)
     ballY = (Vector2 ballPosX (ballPosY - ballVelY), Vector2 0 0)
 
