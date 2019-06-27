@@ -4,7 +4,7 @@ module Types where
 
   screenWidth, screenHeight :: Int
   screenWidth = 600
-  screenHeight = 800
+  screenHeight = 700
 
   paddleSpeed :: Float
   paddleSpeed = 7.0

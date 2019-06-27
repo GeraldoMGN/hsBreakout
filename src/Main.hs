@@ -20,7 +20,7 @@ window = InWindow "hsBreakout" (screenWidth, screenHeight) (10, 10)
 
 newEasyGame :: Game
 newEasyGame = Game {
-  ball = (Vector2 0 (-340), Vector2 2 3),
+  ball = (Vector2 0 (-300), Vector2 2 3),
   conditions = Conditions True False False,
   paddle = (0,100),
   keys = Set.empty,
@@ -29,7 +29,7 @@ newEasyGame = Game {
 
 newMediumGame :: Game
 newMediumGame = Game {
-  ball = (Vector2 0 (-340), Vector2 4 5),
+  ball = (Vector2 0 (-300), Vector2 4 5),
   conditions = Conditions True False False,
   paddle = (0,80),
   keys = Set.empty,
@@ -38,7 +38,7 @@ newMediumGame = Game {
 
 newHardGame :: Game
 newHardGame = Game {
-  ball = (Vector2 0 (-340), Vector2 5 6),
+  ball = (Vector2 0 (-300), Vector2 5 6),
   conditions = Conditions True False False,
   paddle = (0,60),
   keys = Set.empty,
@@ -60,7 +60,7 @@ drawBall ball = pictures [(uncurry translate (posX,posY) $ color ballColor $ rec
     (Vector2 posX posY ,_) = ball
 
 drawPaddle :: Paddle -> Picture
-drawPaddle paddle = pictures [(uncurry translate (posX, (-370)) $ color paddleColor $ rectangleSolid width 10)]
+drawPaddle paddle = pictures [(uncurry translate (posX, (-320)) $ color paddleColor $ rectangleSolid width 10)]
   where
     (posX, width) = paddle
 
@@ -238,8 +238,8 @@ bounds (Vector2 posX posY) width height = ((Vector2 (posX - width/2.0) (posY - h
 
 collidePaddle :: Ball -> Paddle -> Ball
 collidePaddle ball paddle
-  | ballPosY <= -360 && 
-    ballPosY >= -370 && 
+  | ballPosY <= -310 && 
+    ballPosY >= -320 && 
     ballPosX >= paddlePosX - paddleWidth/2 && 
     ballPosX <= paddlePosX + paddleWidth/2 = (Vector2 ballPosX ballPosY, Vector2 ballVelX (abs ballVelY))
   | otherwise = ball
